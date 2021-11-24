@@ -10,6 +10,10 @@
     "@types/node": "^12.20.37",
     "@types/react": "^17.0.36",
     "@types/react-dom": "^17.0.11",
+    "effector": "^22.1.2",
+    "effector-react": "^22.0.4",
+    "node-sass": "^6.0.1",
+    "peggy": "^1.2.0",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
     "react-scripts": "4.0.3",
@@ -17,7 +21,7 @@
     "web-vitals": "^1.1.2"
   },
   "scripts": {
-    "start": "react-scripts start",
+    "start": "peggy -o src/core/parser/index.js src/core/parser/grammar.peggy && react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
@@ -26,6 +30,9 @@
     "extends": [
       "react-app",
       "react-app/jest"
+    ],
+    "ignorePatterns": [
+      "src/core/parser/index.js"
     ]
   },
   "browserslist": {
@@ -39,5 +46,9 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "prettier": "^2.4.1",
+    "sass-loader": "^12.3.0"
   }
 }

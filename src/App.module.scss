@@ -1,0 +1,27 @@
+.app {
+  width: calc(100vw - 40px);
+  height: calc(100vh - 40px);
+  padding: 20px;
+
+  textarea {
+    resize: none;
+  }
+
+  .controls {
+    height: 5vh;
+  }
+
+  .verticalAreas {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 20px;
+    height: 90vh;
+  }
+
+  .horizontalAreas {
+    display: grid;
+    grid-template-rows: 1fr 1fr;
+    row-gap: 20px;
+    height: 100%;
+  }
+}
