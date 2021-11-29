@@ -1,1 +1,1 @@
-export * from './nodes'
+export * as Factory from './nodes'

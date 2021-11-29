@@ -1,6 +1,6 @@
 import { createEffect, createEvent, createStore, sample } from 'effector'
 import { generateKibaAst, generateParserAst, compile } from '../core'
-import * as Factory from '../core/factory'
+import { Factory } from '../core/factory'
 
 export const inputChanged = createEvent<string>()
 
@@ -18,7 +18,7 @@ std.print(identity(1))
 `.trim()
 )
 
-export const $ast = createStore(new Factory.ProgramNode([]))
+export const $ast = createStore(new Factory.ProgramNode([], Factory.KibaNode.emptyLocation()))
 
 export const $compiledCode = createStore('')
 
@@ -50,6 +50,8 @@ sample({
   clock: compileSourceCode,
   target: compileFx,
 })
+
+generateAstFx.doneData.watch(console.log)
 
 generateAstFx.failData.watch(console.error)
 compileFx.failData.watch(console.error)

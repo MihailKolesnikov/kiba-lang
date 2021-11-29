@@ -1,10 +1,44 @@
-export type KibaVisitor = (node: KibaNode) => string
+export class KibaVisitor {
+  public hasStdAccess: boolean = false
+
+  includeStdLibraryCode() {
+    this.hasStdAccess = true
+  }
+
+  generateStdLibraryCode(): string {
+    return '// std-library-code\nconst std = { print: console.log }\n//end of std-library-code\n'
+  }
+
+  public visit = (node: KibaNode): string => node.generateCode(this)
+}
+
+export type NodeLocation = {
+  start: { offset: number; line: number; column: number }
+  end: { offset: number; line: number; column: number }
+}
 
 export abstract class KibaNode {
-  constructor(public type: string, public children: KibaNode[]) {}
+  constructor(public type: string, public children: KibaNode[], public location: NodeLocation) {}
 
   public is<T extends KibaNode>(constructor: { new (...args: any[]): T }): this is T {
     return this instanceof constructor
+  }
+
+  static emptyLocation(): NodeLocation {
+    return { start: { offset: 0, column: 0, line: 0 }, end: { offset: 0, column: 0, line: 0 } }
+  }
+
+  public toObject(): Object {
+    const plainObject: { [key: string]: any } = {
+      ...this,
+      _type: this.type,
+      children: this.children.map((c) => c.toObject()),
+    }
+
+    delete plainObject.type
+    delete plainObject.location
+
+    return plainObject
   }
 
   abstract stringRepresentation(): string
@@ -13,12 +47,12 @@ export abstract class KibaNode {
 }
 
 export class ProgramNode extends KibaNode {
-  constructor(children: KibaNode[]) {
-    super('program', children)
+  constructor(children: KibaNode[], location: NodeLocation) {
+    super('program', children, location)
   }
 
   generateCode(visitor: KibaVisitor): string {
-    return this.children.map(visitor).join('\n')
+    return this.children.map(visitor.visit).join('\n')
   }
 
   stringRepresentation(): string {
@@ -27,8 +61,8 @@ export class ProgramNode extends KibaNode {
 }
 
 export class IntegerNode extends KibaNode {
-  constructor(public value: number, children: KibaNode[]) {
-    super('integer', children)
+  constructor(public value: number, children: KibaNode[], location: NodeLocation) {
+    super('integer', children, location)
   }
 
   generateCode(visitor: KibaVisitor): string {
@@ -41,8 +75,8 @@ export class IntegerNode extends KibaNode {
 }
 
 export class StringNode extends KibaNode {
-  constructor(public value: string, children: KibaNode[]) {
-    super('string', children)
+  constructor(public value: string, children: KibaNode[], location: NodeLocation) {
+    super('string', children, location)
   }
 
   generateCode(visitor: KibaVisitor): string {
@@ -55,8 +89,8 @@ export class StringNode extends KibaNode {
 }
 
 export class BooleanNode extends KibaNode {
-  constructor(public value: boolean, children: KibaNode[]) {
-    super('boolean', children)
+  constructor(public value: boolean, children: KibaNode[], location: NodeLocation) {
+    super('boolean', children, location)
   }
 
   generateCode(visitor: KibaVisitor): string {
@@ -69,8 +103,8 @@ export class BooleanNode extends KibaNode {
 }
 
 export class ObjectPropertyDeclarationNode extends KibaNode {
-  constructor(children: KibaNode[]) {
-    super('object property declaration', children)
+  constructor(children: KibaNode[], location: NodeLocation) {
+    super('object property declaration', children, location)
   }
 
   generateCode(visitor: KibaVisitor): string {
@@ -84,12 +118,12 @@ export class ObjectPropertyDeclarationNode extends KibaNode {
 }
 
 export class ObjectNode extends KibaNode {
-  constructor(children: KibaNode[]) {
-    super('object', children)
+  constructor(children: KibaNode[], location: NodeLocation) {
+    super('object', children, location)
   }
 
   generateCode(visitor: KibaVisitor): string {
-    return `{ ${this.children.map(visitor)} }`
+    return `{ ${this.children.map(visitor.visit)} }`
   }
 
   stringRepresentation(): string {
@@ -98,43 +132,35 @@ export class ObjectNode extends KibaNode {
 }
 
 export class IdentifierNode extends KibaNode {
-  private static stdMethodsMap = new Map([['print', 'console.log']])
-
-  constructor(public value: string, children: KibaNode[]) {
-    super('identifier', children)
+  constructor(public value: string, children: KibaNode[], location: NodeLocation) {
+    super('identifier', children, location)
   }
 
   generateCode(visitor: KibaVisitor): string {
-    return this.mapIfStdMethodOrGetValue()
+    return this.value
   }
 
   stringRepresentation(): string {
     return `${this.type}: ${this.value}`
   }
 
-  isStdAccessNode = (): boolean => this.value === 'std'
-
-  mapIfStdMethodOrGetValue = (): string => {
-    if (IdentifierNode.stdMethodsMap.has(this.value)) {
-      return IdentifierNode.stdMethodsMap.get(this.value)!
-    }
-
-    return this.value
+  isStdAccessNode(): boolean {
+    return this.value === 'std'
   }
 }
 
 export class VariableDeclarationNode extends KibaNode {
   constructor(
-    public type: string,
     public name: string,
     public mutable: boolean,
-    children: KibaNode[]
+    children: KibaNode[],
+    location: NodeLocation
   ) {
-    super('variable declaration', children)
+    super('variable declaration', children, location)
   }
 
   generateCode(visitor: KibaVisitor): string {
-    return `${this.mutable ? 'let' : 'const'} ${this.name} = ${this.children.map(visitor)}`
+    return `${this.mutable ? 'let' : 'const'} ${this.name} = ${this.children.map(visitor.visit)}`
   }
 
   stringRepresentation(): string {
@@ -143,8 +169,8 @@ export class VariableDeclarationNode extends KibaNode {
 }
 
 export class FunctionDeclarationNode extends KibaNode {
-  constructor(public name: string, children: KibaNode[]) {
-    super('function declaration', children)
+  constructor(public name: string, children: KibaNode[], location: NodeLocation) {
+    super('function declaration', children, location)
   }
 
   generateCode(visitor: KibaVisitor): string {
@@ -152,7 +178,7 @@ export class FunctionDeclarationNode extends KibaNode {
 
     return [
       `function ${this.name}(${params.generateCode(visitor)}) {`,
-      `  ${children.map(visitor).join('\n  ')}`,
+      `  ${children.map(visitor.visit).join('\n  ')}`,
       '}',
     ].join('\n')
   }
@@ -163,12 +189,12 @@ export class FunctionDeclarationNode extends KibaNode {
 }
 
 export class FunctionParametersNode extends KibaNode {
-  constructor(children: KibaNode[]) {
-    super('function parameters', children)
+  constructor(children: KibaNode[], location: NodeLocation) {
+    super('function parameters', children, location)
   }
 
   generateCode(visitor: KibaVisitor): string {
-    return `${this.children.map(visitor).join(', ')}`
+    return `${this.children.map(visitor.visit).join(', ')}`
   }
 
   stringRepresentation(): string {
@@ -177,12 +203,12 @@ export class FunctionParametersNode extends KibaNode {
 }
 
 export class FunctionArgumentsNode extends KibaNode {
-  constructor(children: KibaNode[]) {
-    super('function arguments', children)
+  constructor(children: KibaNode[], location: NodeLocation) {
+    super('function arguments', children, location)
   }
 
   generateCode(visitor: KibaVisitor): string {
-    return `${this.children.map(visitor).join(', ')}`
+    return `${this.children.map(visitor.visit).join(', ')}`
   }
 
   stringRepresentation(): string {
@@ -191,8 +217,8 @@ export class FunctionArgumentsNode extends KibaNode {
 }
 
 export class CallExpressionNode extends KibaNode {
-  constructor(children: KibaNode[]) {
-    super('call expression', children)
+  constructor(children: KibaNode[], location: NodeLocation) {
+    super('call expression', children, location)
   }
 
   generateCode(visitor: KibaVisitor): string {
@@ -207,14 +233,14 @@ export class CallExpressionNode extends KibaNode {
 }
 
 export class BinaryExpressionNode extends KibaNode {
-  constructor(public operator: string, children: KibaNode[]) {
-    super('binary expression', children)
+  constructor(public operator: string, children: KibaNode[], location: NodeLocation) {
+    super('binary expression', children, location)
   }
 
   generateCode(visitor: KibaVisitor): string {
     const [left, right] = this.children
 
-    return `${visitor(left)} ${this.operator} ${visitor(right)}`
+    return `${visitor.visit(left)} ${this.operator} ${visitor.visit(right)}`
   }
 
   stringRepresentation(): string {
@@ -223,18 +249,18 @@ export class BinaryExpressionNode extends KibaNode {
 }
 
 export class PropertyAccessExpressionNode extends KibaNode {
-  constructor(children: KibaNode[]) {
-    super('property access expression', children)
+  constructor(children: KibaNode[], location: NodeLocation) {
+    super('property access expression', children, location)
   }
 
   generateCode(visitor: KibaVisitor): string {
     const [left, right] = this.children
 
     if (left.is(IdentifierNode) && left.isStdAccessNode()) {
-      return visitor(right)
+      visitor.includeStdLibraryCode()
     }
 
-    return `${visitor(left)}.${visitor(right)}`
+    return `${visitor.visit(left)}.${visitor.visit(right)}`
   }
 
   stringRepresentation(): string {
@@ -243,12 +269,12 @@ export class PropertyAccessExpressionNode extends KibaNode {
 }
 
 export class RetExpressionNode extends KibaNode {
-  constructor(children: KibaNode[]) {
-    super('return expression', children)
+  constructor(children: KibaNode[], location: NodeLocation) {
+    super('return expression', children, location)
   }
 
-  generateCode = (visitor: KibaVisitor) => {
-    return `return ${this.children.map(visitor)}`
+  generateCode(visitor: KibaVisitor) {
+    return `return ${this.children.map(visitor.visit)}`
   }
 
   stringRepresentation(): string {

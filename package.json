@@ -21,9 +21,10 @@
     "web-vitals": "^1.1.2"
   },
   "scripts": {
-    "start": "peggy -o src/core/parser/index.js src/core/parser/grammar.peggy && react-scripts start",
+    "generateParser": "peggy -o src/core/parser/index.js src/core/parser/grammar.peggy",
+    "start": "npm run generateParser && react-scripts start",
     "build": "react-scripts build",
-    "test": "react-scripts test",
+    "test": "npm run generateParser && react-scripts test --watchAll=false",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
