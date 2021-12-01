@@ -20,6 +20,14 @@ function parserVisitor(program: ParserNode): Factory.KibaNode {
       return new Factory.FunctionDeclarationNode(node.name, node.children.map(visit), node.location)
     }
 
+    if (node.type === ParserNodeTypes.namedFnExpression) {
+      return new Factory.NamedFnExpressionNode(node.name, node.children.map(visit), node.location)
+    }
+
+    if (node.type === ParserNodeTypes.anonymousFnExpression) {
+      return new Factory.AnonymousFnExpressionNode(node.children.map(visit), node.location)
+    }
+
     if (node.type === ParserNodeTypes.fnParams) {
       return new Factory.FunctionParametersNode(node.children.map(visit), node.location)
     }
@@ -35,6 +43,10 @@ function parserVisitor(program: ParserNode): Factory.KibaNode {
         node.children.map(visit),
         node.location
       )
+    }
+
+    if (node.type === ParserNodeTypes.void) {
+      return new Factory.VoidNode([], node.location)
     }
 
     if (node.type === ParserNodeTypes.string) {

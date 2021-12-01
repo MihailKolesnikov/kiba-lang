@@ -51,7 +51,5 @@ sample({
   target: compileFx,
 })
 
-generateAstFx.doneData.watch(console.log)
-
 generateAstFx.failData.watch(console.error)
 compileFx.failData.watch(console.error)

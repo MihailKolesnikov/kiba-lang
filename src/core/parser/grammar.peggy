@@ -10,7 +10,7 @@ start
 
   program = statement+
 
-  statement = fnDeclaration / variableDeclaration / expression
+  statement = expression / variableDeclaration
 
   // functions
 
@@ -36,21 +36,43 @@ start
       return { type: 'returnExpression', children: [expr], location: nodeLocation() }
     }
 
-  fnDeclaration
-    = _ fnKeyword _ name:identifier _ openParen _ params:fnParams _ closeParen _ blockOpenParen _
+  namedFnExpression
+    = _ variableType _ name:identifier _ equals _ openParen _ params:fnParams _ closeParen _ fnArrow _ expr:expression _ {
+         return { type: 'namedFnExpression', children: [name, params, expr], location: nodeLocation() }
+    }
+    / _ variableType _ name:identifier _ equals _ openParen _ params:fnParams _ closeParen _ fnArrow _ value:variableValue _ {
+         return { type: 'namedFnExpression', children: [name, params, value], location: nodeLocation() }
+    }
+    / _ variableType _ name:identifier _ equals _ openParen _ params:fnParams _ closeParen _ fnArrow _ blockOpenParen _
         body:statement*
         retExpr:returnExpression
       _ blockCloseParen _ {
-      return { type: 'fnDeclaration', name: name.value, children: [params, ...body, retExpr], location: nodeLocation() }
+       return { type: 'namedFnExpression', children: [name, params, ...body, retExpr], location: nodeLocation() }
+    }
+
+  anonymousFnExpression
+    = _ openParen _ params:fnParams _ closeParen _ fnArrow _ expr:expression _ {
+       return { type: 'anonymousFnExpression', children: [params, expr], location: nodeLocation() }
+    }
+    / _ openParen _ params:fnParams _ closeParen _ fnArrow _ value:variableValue _ {
+       return { type: 'anonymousFnExpression', children: [params, value], location: nodeLocation() }
+    }
+    / _ openParen _ params:fnParams _ closeParen _ fnArrow _ blockOpenParen _
+        body:statement*
+        retExpr:returnExpression
+      _ blockCloseParen _ {
+       return { type: 'anonymousFnExpression', children: [params, ...body, retExpr], location: nodeLocation() }
     }
 
   fnKeyword = 'fn' { return { type: 'fnKeyword', value: text(), children: [], location: nodeLocation() } }
 
   returnKeyword = 'return' { return { type: 'returnKeyword', value: 'return', children: [], location: nodeLocation() } }
 
+  fnArrow = '->' { return { type: 'fnArrow', value: text(), children: [], location: nodeLocation() } }
+
   // expressions
   expression
-    =  callExpression / propertyAccessExpression / binaryExpression
+    = namedFnExpression / anonymousFnExpression / callExpression / propertyAccessExpression / binaryExpression
 
   callExpression
     = _ expr:propertyAccessExpression _ openParen _ args:fnArgs _ closeParen _ {
@@ -98,6 +120,7 @@ start
   variableValue
     = expression
     / object
+    / void
     / integer
     / boolean
     / string
@@ -110,6 +133,10 @@ start
   identifier = [a-zA-Z0-9*]+ { return { type: 'identifier', value: text(), children: [], location: nodeLocation() } }
 
   // primitive data types
+
+  void = 'void' {
+    return { type: 'void', value: 'void', children: [], location: nodeLocation() }
+  }
 
   integer = digits:[0-9]+ {
     return { type: 'integer', value: parseInt(digits.join(''), 10), children: [], location: nodeLocation() }

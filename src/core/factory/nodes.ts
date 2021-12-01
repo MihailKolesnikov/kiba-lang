@@ -88,6 +88,20 @@ export class StringNode extends KibaNode {
   }
 }
 
+export class VoidNode extends KibaNode {
+  constructor(children: KibaNode[], location: NodeLocation) {
+    super('void', children, location)
+  }
+
+  generateCode(visitor: KibaVisitor): string {
+    return 'undefined'
+  }
+
+  stringRepresentation(): string {
+    return this.type
+  }
+}
+
 export class BooleanNode extends KibaNode {
   constructor(public value: boolean, children: KibaNode[], location: NodeLocation) {
     super('boolean', children, location)
@@ -181,6 +195,62 @@ export class FunctionDeclarationNode extends KibaNode {
       `  ${children.map(visitor.visit).join('\n  ')}`,
       '}',
     ].join('\n')
+  }
+
+  stringRepresentation(): string {
+    return this.type
+  }
+}
+
+export class NamedFnExpressionNode extends KibaNode {
+  constructor(public name: string, children: KibaNode[], location: NodeLocation) {
+    super('named fn expression', children, location)
+  }
+
+  generateCode(visitor: KibaVisitor): string {
+    const [name, params, ...children] = this.children
+
+    const mayBeReturnExpression = children[children.length - 1]
+
+    if (mayBeReturnExpression.is(RetExpressionNode)) {
+      return [
+        `const ${name.generateCode(visitor)} = (${params.generateCode(visitor)}) => {`,
+        `  ${children.map(visitor.visit).join('\n  ')}`,
+        '}',
+      ].join('\n')
+    }
+
+    return [
+      `const ${name.generateCode(visitor)} = (${params.generateCode(visitor)}) => ${children
+        .map(visitor.visit)
+        .join('\n  ')}`,
+    ].join('\n')
+  }
+
+  stringRepresentation(): string {
+    return this.type
+  }
+}
+
+export class AnonymousFnExpressionNode extends KibaNode {
+  constructor(children: KibaNode[], location: NodeLocation) {
+    super('anonymous fn expression', children, location)
+  }
+
+  generateCode(visitor: KibaVisitor): string {
+    const [params, ...children] = this.children
+
+    const mayBeReturnExpression = children[children.length - 1]
+
+    if (mayBeReturnExpression.is(RetExpressionNode)) {
+      return [
+        `(${params.generateCode(visitor)}) => {`,
+        `  ${children.map(visitor.visit).join('\n  ')}`,
+        '}',
+      ].join('\n')
+    }
+
+    return `(${params.generateCode(visitor)}) => ${children.map(visitor.visit).join('\n  ')}`
   }
 
   stringRepresentation(): string {
