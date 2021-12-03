@@ -92,18 +92,21 @@ start
 
   binaryExpression
     = _ left:identifier _ op:binaryOperator _ right:binaryExpression _ {
-      return { type: 'binaryExpression', operator: op, children: [left, right], location: nodeLocation() }
+      return { type: 'binaryExpression', children: [left, op, right], location: nodeLocation() }
+    }
+    / _ openP:openParen _ left:identifier _ op:binaryOperator _ right:identifier _ closeP:closeParen _ {
+        return { type: 'binaryExpression', children: [openP, left, op, right, closeP], location: nodeLocation() }
     }
     / _ left:identifier _ op:binaryOperator _ right:identifier _ {
-      return { type: 'binaryExpression', operator: op, children: [left, right], location: nodeLocation() }
+      return { type: 'binaryExpression', children: [left, op, right], location: nodeLocation() }
     }
 
   binaryOperator
-    = add { return '+' }
-    / sub { return '-' }
-    / multiply { return '*' }
-    / div { return '/' }
-    / equals { return '=' }
+    = add { return { type: 'binaryOperator', value: '+', children: [], location: nodeLocation() } }
+    / sub { return { type: 'binaryOperator', value: '-', children: [], location: nodeLocation() } }
+    / multiply { return { type: 'binaryOperator', value: '*', children: [], location: nodeLocation() } }
+    / div { return { type: 'binaryOperator', value: '/', children: [], location: nodeLocation() } }
+    / equals { return { type: 'binaryOperator', value: '=', children: [], location: nodeLocation() } }
 
   // variables
 

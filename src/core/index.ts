@@ -76,12 +76,20 @@ function parserVisitor(program: ParserNode): Factory.KibaNode {
       return new Factory.CallExpressionNode(node.children.map(visit), node.location)
     }
 
+    if (node.type === ParserNodeTypes.openParen) {
+      return new Factory.OpenParenNode(node.children.map(visit), node.location)
+    }
+
+    if (node.type === ParserNodeTypes.closeParen) {
+      return new Factory.CloseParenNode(node.children.map(visit), node.location)
+    }
+
+    if (node.type === ParserNodeTypes.binaryOperator) {
+      return new Factory.BinaryOperatorNode(node.value, node.children.map(visit), node.location)
+    }
+
     if (node.type === ParserNodeTypes.binaryExpression) {
-      return new Factory.BinaryExpressionNode(
-        node.operator,
-        node.children.map(visit),
-        node.location
-      )
+      return new Factory.BinaryExpressionNode(node.children.map(visit), node.location)
     }
 
     if (node.type === ParserNodeTypes.propertyAccessExpression) {

@@ -88,6 +88,48 @@ export class StringNode extends KibaNode {
   }
 }
 
+export class BinaryOperatorNode extends KibaNode {
+  constructor(public value: string, children: KibaNode[], location: NodeLocation) {
+    super('binary operator', children, location)
+  }
+
+  generateCode(visitor: KibaVisitor): string {
+    return this.value
+  }
+
+  stringRepresentation(): string {
+    return `${this.type}: ${this.value}`
+  }
+}
+
+export class OpenParenNode extends KibaNode {
+  constructor(children: KibaNode[], location: NodeLocation) {
+    super('open paren', children, location)
+  }
+
+  generateCode(visitor: KibaVisitor): string {
+    return '('
+  }
+
+  stringRepresentation(): string {
+    return `${this.type}: (`
+  }
+}
+
+export class CloseParenNode extends KibaNode {
+  constructor(children: KibaNode[], location: NodeLocation) {
+    super('close paren', children, location)
+  }
+
+  generateCode(visitor: KibaVisitor): string {
+    return ')'
+  }
+
+  stringRepresentation(): string {
+    return `${this.type}: )`
+  }
+}
+
 export class VoidNode extends KibaNode {
   constructor(children: KibaNode[], location: NodeLocation) {
     super('void', children, location)
@@ -169,7 +211,7 @@ export class VariableDeclarationNode extends KibaNode {
   }
 
   generateCode(visitor: KibaVisitor): string {
-    return `const ${this.name} = ${this.children.map(visitor.visit)}`
+    return `const ${this.name} = ${this.children.map(visitor.visit).join('')}`
   }
 
   stringRepresentation(): string {
@@ -298,14 +340,12 @@ export class CallExpressionNode extends KibaNode {
 }
 
 export class BinaryExpressionNode extends KibaNode {
-  constructor(public operator: string, children: KibaNode[], location: NodeLocation) {
+  constructor(children: KibaNode[], location: NodeLocation) {
     super('binary expression', children, location)
   }
 
   generateCode(visitor: KibaVisitor): string {
-    const [left, right] = this.children
-
-    return `${visitor.visit(left)} ${this.operator} ${visitor.visit(right)}`
+    return this.children.map(visitor.visit).join('')
   }
 
   stringRepresentation(): string {
