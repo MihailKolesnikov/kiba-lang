@@ -164,17 +164,12 @@ export class IdentifierNode extends KibaNode {
 }
 
 export class VariableDeclarationNode extends KibaNode {
-  constructor(
-    public name: string,
-    public mutable: boolean,
-    children: KibaNode[],
-    location: NodeLocation
-  ) {
+  constructor(public name: string, children: KibaNode[], location: NodeLocation) {
     super('variable declaration', children, location)
   }
 
   generateCode(visitor: KibaVisitor): string {
-    return `${this.mutable ? 'let' : 'const'} ${this.name} = ${this.children.map(visitor.visit)}`
+    return `const ${this.name} = ${this.children.map(visitor.visit)}`
   }
 
   stringRepresentation(): string {
@@ -203,7 +198,7 @@ export class FunctionDeclarationNode extends KibaNode {
 }
 
 export class NamedFnExpressionNode extends KibaNode {
-  constructor(public name: string, children: KibaNode[], location: NodeLocation) {
+  constructor(children: KibaNode[], location: NodeLocation) {
     super('named fn expression', children, location)
   }
 

@@ -10,9 +10,7 @@ export const compileSourceCode = createEvent()
 
 export const $input = createStore(
   `
-fn identity(a) {
-  return a
-}
+let identity = (a) -> a
 
 std.print(identity(1))
 `.trim()

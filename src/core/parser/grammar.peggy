@@ -37,13 +37,13 @@ start
     }
 
   namedFnExpression
-    = _ variableType _ name:identifier _ equals _ openParen _ params:fnParams _ closeParen _ fnArrow _ expr:expression _ {
+    = _ letKeyword _ name:identifier _ equals _ openParen _ params:fnParams _ closeParen _ fnArrow _ expr:expression _ {
          return { type: 'namedFnExpression', children: [name, params, expr], location: nodeLocation() }
     }
-    / _ variableType _ name:identifier _ equals _ openParen _ params:fnParams _ closeParen _ fnArrow _ value:variableValue _ {
+    / _ letKeyword _ name:identifier _ equals _ openParen _ params:fnParams _ closeParen _ fnArrow _ value:variableValue _ {
          return { type: 'namedFnExpression', children: [name, params, value], location: nodeLocation() }
     }
-    / _ variableType _ name:identifier _ equals _ openParen _ params:fnParams _ closeParen _ fnArrow _ blockOpenParen _
+    / _ letKeyword _ name:identifier _ equals _ openParen _ params:fnParams _ closeParen _ fnArrow _ blockOpenParen _
         body:statement*
         retExpr:returnExpression
       _ blockCloseParen _ {
@@ -103,15 +103,15 @@ start
     / sub { return '-' }
     / multiply { return '*' }
     / div { return '/' }
+    / equals { return '=' }
 
   // variables
 
   variableDeclaration
-    = _ type:variableType _ name:identifier _ equals _ varValue:variableValue _ {
+    = _ type:letKeyword _ name:identifier _ equals _ varValue:variableValue _ {
       return {
         type: 'variable declaration',
         variableName: name.value,
-        mutable: type.value === 'var',
         children: [varValue],
         location: nodeLocation()
       }
@@ -126,9 +126,7 @@ start
     / string
     / identifier
 
-  variableType
-    = 'const' { return { type: 'variableType', value: text(), children: [], location: nodeLocation() } }
-    / 'var' { return { type: 'variableType', value: text(), children: [], location: nodeLocation() } }
+  letKeyword = 'let' { return { type: 'letKeyword', value: text(), children: [], location: nodeLocation() } }
 
   identifier = [a-zA-Z0-9*]+ { return { type: 'identifier', value: text(), children: [], location: nodeLocation() } }
 

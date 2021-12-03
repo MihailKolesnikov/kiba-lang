@@ -21,7 +21,7 @@ function parserVisitor(program: ParserNode): Factory.KibaNode {
     }
 
     if (node.type === ParserNodeTypes.namedFnExpression) {
-      return new Factory.NamedFnExpressionNode(node.name, node.children.map(visit), node.location)
+      return new Factory.NamedFnExpressionNode(node.children.map(visit), node.location)
     }
 
     if (node.type === ParserNodeTypes.anonymousFnExpression) {
@@ -39,7 +39,6 @@ function parserVisitor(program: ParserNode): Factory.KibaNode {
     if (node.type === ParserNodeTypes.variableDeclaration) {
       return new Factory.VariableDeclarationNode(
         node.variableName,
-        node.mutable,
         node.children.map(visit),
         node.location
       )

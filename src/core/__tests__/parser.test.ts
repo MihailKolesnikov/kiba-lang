@@ -3,12 +3,10 @@ import { Factory } from '../factory'
 import { KibaVisitor } from '../factory/nodes'
 
 describe('parser statements tests', () => {
-  describe('function declaration', () => {
-    it('should generate correct ast for fd without params', async () => {
+  describe('named function expression', () => {
+    it('should generate correct ast for nfe without params', async () => {
       const input = `
-        fn test() {
-          return 1
-        }
+        let test = () -> 1
       `
 
       const parserAst = await generateParserAst(input)
@@ -16,14 +14,11 @@ describe('parser statements tests', () => {
 
       const expectedAst = new Factory.ProgramNode(
         [
-          new Factory.FunctionDeclarationNode(
-            'test',
+          new Factory.NamedFnExpressionNode(
             [
+              new Factory.IdentifierNode('test', [], Factory.KibaNode.emptyLocation()),
               new Factory.FunctionParametersNode([], Factory.KibaNode.emptyLocation()),
-              new Factory.RetExpressionNode(
-                [new Factory.IntegerNode(1, [], Factory.KibaNode.emptyLocation())],
-                Factory.KibaNode.emptyLocation()
-              ),
+              new Factory.IntegerNode(1, [], Factory.KibaNode.emptyLocation()),
             ],
             Factory.KibaNode.emptyLocation()
           ),
@@ -34,11 +29,9 @@ describe('parser statements tests', () => {
       expect(kibaAst.toObject()).toStrictEqual(expectedAst.toObject())
     })
 
-    it('should generate correct ast for fd with one parameter', async () => {
+    it('should generate correct ast for nfe with one parameter', async () => {
       const input = `
-        fn test(a) {
-          return a
-        }
+        let test = (a) -> a
       `
 
       const parserAst = await generateParserAst(input)
@@ -46,17 +39,14 @@ describe('parser statements tests', () => {
 
       const expectedAst = new Factory.ProgramNode(
         [
-          new Factory.FunctionDeclarationNode(
-            'test',
+          new Factory.NamedFnExpressionNode(
             [
+              new Factory.IdentifierNode('test', [], Factory.KibaNode.emptyLocation()),
               new Factory.FunctionParametersNode(
                 [new Factory.IdentifierNode('a', [], Factory.KibaNode.emptyLocation())],
                 Factory.KibaNode.emptyLocation()
               ),
-              new Factory.RetExpressionNode(
-                [new Factory.IdentifierNode('a', [], Factory.KibaNode.emptyLocation())],
-                Factory.KibaNode.emptyLocation()
-              ),
+              new Factory.IdentifierNode('a', [], Factory.KibaNode.emptyLocation()),
             ],
             Factory.KibaNode.emptyLocation()
           ),
@@ -67,11 +57,9 @@ describe('parser statements tests', () => {
       expect(kibaAst.toObject()).toStrictEqual(expectedAst.toObject())
     })
 
-    it('should generate correct ast for fd with many parameters', async () => {
+    it('should generate correct ast for nfe with many parameters', async () => {
       const input = `
-        fn test(a, b, c) {
-          return a
-        }
+        let test = (a, b, c) -> a
       `
 
       const parserAst = await generateParserAst(input)
@@ -79,9 +67,9 @@ describe('parser statements tests', () => {
 
       const expectedAst = new Factory.ProgramNode(
         [
-          new Factory.FunctionDeclarationNode(
-            'test',
+          new Factory.NamedFnExpressionNode(
             [
+              new Factory.IdentifierNode('test', [], Factory.KibaNode.emptyLocation()),
               new Factory.FunctionParametersNode(
                 [
                   new Factory.IdentifierNode('a', [], Factory.KibaNode.emptyLocation()),
@@ -90,10 +78,7 @@ describe('parser statements tests', () => {
                 ],
                 Factory.KibaNode.emptyLocation()
               ),
-              new Factory.RetExpressionNode(
-                [new Factory.IdentifierNode('a', [], Factory.KibaNode.emptyLocation())],
-                Factory.KibaNode.emptyLocation()
-              ),
+              new Factory.IdentifierNode('a', [], Factory.KibaNode.emptyLocation()),
             ],
             Factory.KibaNode.emptyLocation()
           ),
@@ -106,9 +91,9 @@ describe('parser statements tests', () => {
   })
 
   describe('variable declaration', () => {
-    it('should generate correct ast for mutable integer declaration', async () => {
+    it('should generate correct ast for integer declaration', async () => {
       const input = `
-        var int = 1
+        let int = 1
       `
 
       const parserAst = await generateParserAst(input)
@@ -118,7 +103,6 @@ describe('parser statements tests', () => {
         [
           new Factory.VariableDeclarationNode(
             'int',
-            true,
             [new Factory.IntegerNode(1, [], Factory.KibaNode.emptyLocation())],
             Factory.KibaNode.emptyLocation()
           ),
@@ -129,32 +113,9 @@ describe('parser statements tests', () => {
       expect(kibaAst.toObject()).toStrictEqual(expectedAst.toObject())
     })
 
-    it('should generate correct ast for immutable integer declaration', async () => {
+    it('should generate correct ast for boolean declaration', async () => {
       const input = `
-        const int = 1
-      `
-
-      const parserAst = await generateParserAst(input)
-      const kibaAst = await generateKibaAst(parserAst)
-
-      const expectedAst = new Factory.ProgramNode(
-        [
-          new Factory.VariableDeclarationNode(
-            'int',
-            false,
-            [new Factory.IntegerNode(1, [], Factory.KibaNode.emptyLocation())],
-            Factory.KibaNode.emptyLocation()
-          ),
-        ],
-        Factory.KibaNode.emptyLocation()
-      )
-
-      expect(kibaAst.toObject()).toStrictEqual(expectedAst.toObject())
-    })
-
-    it('should generate correct ast for mutable boolean declaration', async () => {
-      const input = `
-        var bool = true
+        let bool = true
       `
 
       const parserAst = await generateParserAst(input)
@@ -164,7 +125,6 @@ describe('parser statements tests', () => {
         [
           new Factory.VariableDeclarationNode(
             'bool',
-            true,
             [new Factory.BooleanNode(true, [], Factory.KibaNode.emptyLocation())],
             Factory.KibaNode.emptyLocation()
           ),
@@ -175,32 +135,9 @@ describe('parser statements tests', () => {
       expect(kibaAst.toObject()).toStrictEqual(expectedAst.toObject())
     })
 
-    it('should generate correct ast for immutable boolean declaration', async () => {
+    it('should generate correct ast for string declaration', async () => {
       const input = `
-        const bool = true
-      `
-
-      const parserAst = await generateParserAst(input)
-      const kibaAst = await generateKibaAst(parserAst)
-
-      const expectedAst = new Factory.ProgramNode(
-        [
-          new Factory.VariableDeclarationNode(
-            'bool',
-            false,
-            [new Factory.BooleanNode(true, [], Factory.KibaNode.emptyLocation())],
-            Factory.KibaNode.emptyLocation()
-          ),
-        ],
-        Factory.KibaNode.emptyLocation()
-      )
-
-      expect(kibaAst.toObject()).toStrictEqual(expectedAst.toObject())
-    })
-
-    it('should generate correct ast for mutable string declaration', async () => {
-      const input = `
-        var str = 'str'
+        let str = 'str'
       `
 
       const parserAst = await generateParserAst(input)
@@ -210,30 +147,6 @@ describe('parser statements tests', () => {
         [
           new Factory.VariableDeclarationNode(
             'str',
-            true,
-            [new Factory.StringNode('str', [], Factory.KibaNode.emptyLocation())],
-            Factory.KibaNode.emptyLocation()
-          ),
-        ],
-        Factory.KibaNode.emptyLocation()
-      )
-
-      expect(kibaAst.toObject()).toStrictEqual(expectedAst.toObject())
-    })
-
-    it('should generate correct ast for immutable string declaration', async () => {
-      const input = `
-        const str = 'str'
-      `
-
-      const parserAst = await generateParserAst(input)
-      const kibaAst = await generateKibaAst(parserAst)
-
-      const expectedAst = new Factory.ProgramNode(
-        [
-          new Factory.VariableDeclarationNode(
-            'str',
-            false,
             [new Factory.StringNode('str', [], Factory.KibaNode.emptyLocation())],
             Factory.KibaNode.emptyLocation()
           ),
@@ -248,7 +161,7 @@ describe('parser statements tests', () => {
   describe('std library code injection', () => {
     it('should inject std-lib code if in code present access to std object', async () => {
       const input = `
-        const str = 'str'
+        let str = 'str'
         std.print(str)
       `
 
@@ -263,7 +176,7 @@ describe('parser statements tests', () => {
 
     it('should not inject std-lib code if in code not present access to std object', async () => {
       const input = `
-        const str = 'str'
+        let str = 'str'
       `
 
       const output = await compile(input)
