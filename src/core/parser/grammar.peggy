@@ -1,8 +1,12 @@
 {
-    const nodeLocation = () => {
-        const loc = location()
-        return { start: loc.start, end: loc.end }
-    }
+  const nodeLocation = () => {
+    const loc = location()
+    return { start: loc.start, end: loc.end }
+  }
+
+  const emptyLocation = () => {
+    return { start: { offset: 0, column: 0, line: 0 }, end: { offset: 0, column: 0, line: 0 } }
+  }
 }
 
 start
@@ -10,7 +14,33 @@ start
 
   program = statement+
 
-  statement = expression / variableDeclaration
+  statement = expression / variableDeclaration / kibaComponentDeclaration
+
+  // components
+
+  kibaComponentDeclaration = _ 'component' _ name:identifier _ openParen _ closeParen _ fnArrow _ blockOpenParen _
+    returnKeyword _ returnedElement:kibaElement _
+  _ blockCloseParen _ {
+    return { type: 'kibaComponentDeclaration', name, returnedElement }
+  }
+
+  elementStart = '<' name:identifier '>' {
+    return { type: 'elementStart', value: name.value }
+  }
+
+  elementEnd = '</' name:identifier '>' {
+    return { type: 'elementEnd', value: name.value }
+  }
+
+  kibaElement = nestedKibaElement
+
+  kibaElementContent
+   = kibaElement
+   / identifier
+
+  nestedKibaElement = _ start:elementStart _ content:kibaElementContent* _ end:elementEnd _ & { return start.value === end.value } {
+    return { type: 'kibaElement', children: content, name: start.value }
+  }
 
   // functions
 
@@ -38,10 +68,26 @@ start
 
   namedFnExpression
     = _ letKeyword _ name:identifier _ equals _ openParen _ params:fnParams _ closeParen _ fnArrow _ expr:expression _ {
-         return { type: 'namedFnExpression', children: [name, params, expr], location: nodeLocation() }
+        return {
+          type: 'namedFnExpression',
+          children: [
+            name,
+            params,
+            { type: 'returnExpression', children: [expr], location: nodeLocation() },
+          ],
+          location: nodeLocation(),
+        }
     }
     / _ letKeyword _ name:identifier _ equals _ openParen _ params:fnParams _ closeParen _ fnArrow _ value:variableValue _ {
-         return { type: 'namedFnExpression', children: [name, params, value], location: nodeLocation() }
+        return {
+          type: 'namedFnExpression',
+          children: [
+            name,
+            params,
+            { type: 'returnExpression', children: [value], location: nodeLocation() },
+          ],
+          location: nodeLocation(),
+        }
     }
     / _ letKeyword _ name:identifier _ equals _ openParen _ params:fnParams _ closeParen _ fnArrow _ blockOpenParen _
         body:statement*
@@ -72,7 +118,7 @@ start
 
   // expressions
   expression
-    = namedFnExpression / anonymousFnExpression / callExpression / propertyAccessExpression / binaryExpression
+    = namedFnExpression / anonymousFnExpression / callExpression / propertyAccessExpression / binaryExpressions
 
   callExpression
     = _ expr:propertyAccessExpression _ openParen _ args:fnArgs _ closeParen _ {
@@ -90,12 +136,12 @@ start
       return { type: 'propertyAccessExpression', children: [object, property], location: nodeLocation() }
     }
 
-  binaryExpression
-    = _ left:identifier _ op:binaryOperator _ right:binaryExpression _ {
-      return { type: 'binaryExpression', children: [left, op, right], location: nodeLocation() }
-    }
-    / _ openP:openParen _ left:identifier _ op:binaryOperator _ right:identifier _ closeP:closeParen _ {
-        return { type: 'binaryExpression', children: [openP, left, op, right, closeP], location: nodeLocation() }
+  binaryExpressions
+    = commonBinaryExpression
+
+  commonBinaryExpression
+    = _ openP:openParen _ left:identifier _ op:binaryOperator _ right:identifier _ closeP:closeParen _ {
+      return { type: 'binaryExpression', children: [openP, left, op, right, closeP], location: nodeLocation() }
     }
     / _ left:identifier _ op:binaryOperator _ right:identifier _ {
       return { type: 'binaryExpression', children: [left, op, right], location: nodeLocation() }
@@ -106,7 +152,7 @@ start
     / sub { return { type: 'binaryOperator', value: '-', children: [], location: nodeLocation() } }
     / multiply { return { type: 'binaryOperator', value: '*', children: [], location: nodeLocation() } }
     / div { return { type: 'binaryOperator', value: '/', children: [], location: nodeLocation() } }
-    / equals { return { type: 'binaryOperator', value: '=', children: [], location: nodeLocation() } }
+    / equals { return { type: 'binaryOperator', value: '==', children: [], location: nodeLocation() } }
 
   // variables
 
@@ -123,6 +169,7 @@ start
   variableValue
     = expression
     / object
+    / array
     / void
     / integer
     / boolean
@@ -161,6 +208,19 @@ start
   object
     = blockOpenParen _ prop:objectPropertyDeclaration* _ blockCloseParen {
       return { type: 'object', children: prop, location: nodeLocation() }
+    }
+
+  otherArrayItems
+   = _ comma _ value:variableValue _ {
+     return value
+   }
+
+  array
+    = openSquareParen _ item:variableValue _ others:otherArrayItems* _ closeSquareParen {
+      return { type: 'array', children: [item].concat(others), location: nodeLocation() }
+    }
+    / openSquareParen _ closeSquareParen {
+      return { type: 'array', children: [], location: nodeLocation() }
     }
 
   // common

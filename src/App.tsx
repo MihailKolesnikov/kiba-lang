@@ -12,7 +12,6 @@ export const App = () => {
   return (
     <div className={styles.app}>
       <div className={styles.controls}>
-        <button onClick={() => model.generateAst()}>generate ast</button>
         <button onClick={() => model.compileSourceCode()}>compile</button>
       </div>
       <div className={styles.verticalAreas}>

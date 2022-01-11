@@ -17,12 +17,15 @@ export type NodeLocation = {
   end: { offset: number; line: number; column: number }
 }
 
+export type KibaNodeConstructor<T extends KibaNode> = { new (...args: any[]): T }
+
+export const isNodeOfType =
+  <T extends KibaNode>(constructor: KibaNodeConstructor<T>) =>
+  (node: unknown): node is T =>
+    node instanceof constructor
+
 export abstract class KibaNode {
   constructor(public type: string, public children: KibaNode[], public location: NodeLocation) {}
-
-  public is<T extends KibaNode>(constructor: { new (...args: any[]): T }): this is T {
-    return this instanceof constructor
-  }
 
   static emptyLocation(): NodeLocation {
     return { start: { offset: 0, column: 0, line: 0 }, end: { offset: 0, column: 0, line: 0 } }
@@ -205,13 +208,13 @@ export class IdentifierNode extends KibaNode {
   }
 }
 
-export class VariableDeclarationNode extends KibaNode {
-  constructor(public name: string, children: KibaNode[], location: NodeLocation) {
-    super('variable declaration', children, location)
+export class ArrayNode extends KibaNode {
+  constructor(children: KibaNode[], location: NodeLocation) {
+    super('array', children, location)
   }
 
   generateCode(visitor: KibaVisitor): string {
-    return `const ${this.name} = ${this.children.map(visitor.visit).join('')}`
+    return `[${this.children.map(visitor.visit).join(',')}]`
   }
 
   stringRepresentation(): string {
@@ -219,19 +222,13 @@ export class VariableDeclarationNode extends KibaNode {
   }
 }
 
-export class FunctionDeclarationNode extends KibaNode {
+export class VariableDeclarationNode extends KibaNode {
   constructor(public name: string, children: KibaNode[], location: NodeLocation) {
-    super('function declaration', children, location)
+    super('variable declaration', children, location)
   }
 
   generateCode(visitor: KibaVisitor): string {
-    const [params, ...children] = this.children
-
-    return [
-      `function ${this.name}(${params.generateCode(visitor)}) {`,
-      `  ${children.map(visitor.visit).join('\n  ')}`,
-      '}',
-    ].join('\n')
+    return `const ${this.name} = ${this.children.map(visitor.visit).join('')}`
   }
 
   stringRepresentation(): string {
@@ -249,7 +246,7 @@ export class NamedFnExpressionNode extends KibaNode {
 
     const mayBeReturnExpression = children[children.length - 1]
 
-    if (mayBeReturnExpression.is(RetExpressionNode)) {
+    if (isNodeOfType(RetExpressionNode)(mayBeReturnExpression)) {
       return [
         `const ${name.generateCode(visitor)} = (${params.generateCode(visitor)}) => {`,
         `  ${children.map(visitor.visit).join('\n  ')}`,
@@ -257,11 +254,9 @@ export class NamedFnExpressionNode extends KibaNode {
       ].join('\n')
     }
 
-    return [
-      `const ${name.generateCode(visitor)} = (${params.generateCode(visitor)}) => ${children
-        .map(visitor.visit)
-        .join('\n  ')}`,
-    ].join('\n')
+    return [`const ${name.generateCode(visitor)} = (${params.generateCode(visitor)}) => ${children.map(visitor.visit).join('\n  ')}`].join(
+      '\n'
+    )
   }
 
   stringRepresentation(): string {
@@ -279,12 +274,8 @@ export class AnonymousFnExpressionNode extends KibaNode {
 
     const mayBeReturnExpression = children[children.length - 1]
 
-    if (mayBeReturnExpression.is(RetExpressionNode)) {
-      return [
-        `(${params.generateCode(visitor)}) => {`,
-        `  ${children.map(visitor.visit).join('\n  ')}`,
-        '}',
-      ].join('\n')
+    if (isNodeOfType(RetExpressionNode)(mayBeReturnExpression)) {
+      return [`(${params.generateCode(visitor)}) => {`, `  ${children.map(visitor.visit).join('\n  ')}`, '}'].join('\n')
     }
 
     return `(${params.generateCode(visitor)}) => ${children.map(visitor.visit).join('\n  ')}`
@@ -361,7 +352,7 @@ export class PropertyAccessExpressionNode extends KibaNode {
   generateCode(visitor: KibaVisitor): string {
     const [left, right] = this.children
 
-    if (left.is(IdentifierNode) && left.isStdAccessNode()) {
+    if (isNodeOfType(IdentifierNode)(left) && left.isStdAccessNode()) {
       visitor.includeStdLibraryCode()
     }
 

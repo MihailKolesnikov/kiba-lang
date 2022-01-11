@@ -1,6 +1,8 @@
 import { ParserNode, ParserNodeTypes } from './parser/types'
 import parser from './parser'
 import { Factory } from './factory'
+import { Analyzer } from './analyzer'
+import { VariableNotDefinedRule } from './analyzer/rules'
 
 function wrapToProgramNode(parserOutput: any): ParserNode {
   if (Array.isArray(parserOutput)) {
@@ -16,10 +18,6 @@ function wrapToProgramNode(parserOutput: any): ParserNode {
 
 function parserVisitor(program: ParserNode): Factory.KibaNode {
   function visit(node: ParserNode): Factory.KibaNode {
-    if (node.type === ParserNodeTypes.fnDeclaration) {
-      return new Factory.FunctionDeclarationNode(node.name, node.children.map(visit), node.location)
-    }
-
     if (node.type === ParserNodeTypes.namedFnExpression) {
       return new Factory.NamedFnExpressionNode(node.children.map(visit), node.location)
     }
@@ -37,11 +35,7 @@ function parserVisitor(program: ParserNode): Factory.KibaNode {
     }
 
     if (node.type === ParserNodeTypes.variableDeclaration) {
-      return new Factory.VariableDeclarationNode(
-        node.variableName,
-        node.children.map(visit),
-        node.location
-      )
+      return new Factory.VariableDeclarationNode(node.variableName, node.children.map(visit), node.location)
     }
 
     if (node.type === ParserNodeTypes.void) {
@@ -66,6 +60,10 @@ function parserVisitor(program: ParserNode): Factory.KibaNode {
 
     if (node.type === ParserNodeTypes.objectPropertyDeclaration) {
       return new Factory.ObjectPropertyDeclarationNode(node.children.map(visit), node.location)
+    }
+
+    if (node.type === ParserNodeTypes.array) {
+      return new Factory.ArrayNode(node.children.map(visit), node.location)
     }
 
     if (node.type === ParserNodeTypes.identifier) {
@@ -123,10 +121,24 @@ export async function generateParserAst(input: string): Promise<ParserNode> {
   return wrapToProgramNode(parser.parse(input))
 }
 
-export async function generateKibaAst(parserAst: ParserNode): Promise<Factory.KibaNode> {
+export async function generateKibaAst(parserAst: ParserNode): Promise<Factory.ProgramNode> {
   return parserVisitor(parserAst)
 }
 
-export function compile(input: string): Promise<string> {
-  return generateParserAst(input).then(generateKibaAst).then(kibaVisitor)
+export async function compile(program: Factory.ProgramNode): Promise<string> {
+  return kibaVisitor(program)
+}
+
+export async function analyze(program: Factory.ProgramNode): Promise<void> {
+  const analyzer = new Analyzer()
+
+  analyzer.addRule(Factory.IdentifierNode, new VariableNotDefinedRule())
+
+  const scope = await analyzer.createProgramScope(program)
+
+  const errors = analyzer.process(scope)
+
+  if (errors.length > 0) {
+    throw errors
+  }
 }

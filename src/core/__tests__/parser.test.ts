@@ -217,4 +217,86 @@ describe('parser statements tests', () => {
       expect(kibaAst.toObject()).toStrictEqual(expectedAst.toObject())
     })
   })
+
+  describe('arrays', () => {
+    it('should generate correct ast for array of zero elements', async () => {
+      const input = `
+        let a = []
+      `
+
+      const parserAst = await generateParserAst(input)
+      const kibaAst = await generateKibaAst(parserAst)
+
+      const expectedAst = new Factory.ProgramNode(
+        [
+          new Factory.VariableDeclarationNode(
+            'a',
+            [new Factory.ArrayNode([], Factory.KibaNode.emptyLocation())],
+            Factory.KibaNode.emptyLocation()
+          ),
+        ],
+        Factory.KibaNode.emptyLocation()
+      )
+
+      expect(kibaAst.toObject()).toStrictEqual(expectedAst.toObject())
+    })
+
+    it('should generate correct ast for array of one element', async () => {
+      const input = `
+        let a = [1]
+      `
+
+      const parserAst = await generateParserAst(input)
+      const kibaAst = await generateKibaAst(parserAst)
+
+      const expectedAst = new Factory.ProgramNode(
+        [
+          new Factory.VariableDeclarationNode(
+            'a',
+            [
+              new Factory.ArrayNode(
+                [new Factory.IntegerNode(1, [], Factory.KibaNode.emptyLocation())],
+                Factory.KibaNode.emptyLocation()
+              ),
+            ],
+            Factory.KibaNode.emptyLocation()
+          ),
+        ],
+        Factory.KibaNode.emptyLocation()
+      )
+
+      expect(kibaAst.toObject()).toStrictEqual(expectedAst.toObject())
+    })
+
+    it('should generate correct ast for array [1, 2, 3]', async () => {
+      const input = `
+        let a = [1, 2, 3]
+      `
+
+      const parserAst = await generateParserAst(input)
+      const kibaAst = await generateKibaAst(parserAst)
+
+      const expectedAst = new Factory.ProgramNode(
+        [
+          new Factory.VariableDeclarationNode(
+            'a',
+            [
+              new Factory.ArrayNode(
+                [
+                  new Factory.IntegerNode(1, [], Factory.KibaNode.emptyLocation()),
+                  new Factory.IntegerNode(2, [], Factory.KibaNode.emptyLocation()),
+                  new Factory.IntegerNode(3, [], Factory.KibaNode.emptyLocation()),
+                ],
+                Factory.KibaNode.emptyLocation()
+              ),
+            ],
+            Factory.KibaNode.emptyLocation()
+          ),
+        ],
+        Factory.KibaNode.emptyLocation()
+      )
+
+      expect(kibaAst.toObject()).toStrictEqual(expectedAst.toObject())
+    })
+  })
 })

@@ -1,18 +1,20 @@
 import { createEffect, createEvent, createStore, sample } from 'effector'
-import { generateKibaAst, generateParserAst, compile } from '../core'
+import { generateKibaAst, generateParserAst, compile, analyze } from '../core'
 import { Factory } from '../core/factory'
+import { RuleResult } from '../core/analyzer/rules'
 
 export const inputChanged = createEvent<string>()
-
-export const generateAst = createEvent()
 
 export const compileSourceCode = createEvent()
 
 export const $input = createStore(
   `
-let identity = (1 + 2)
+let b = 228
 
-std.print(identity)
+let kek = (a) -> {
+  let c = () -> a + b
+  return void
+}
 `.trim()
 )
 
@@ -20,34 +22,39 @@ export const $ast = createStore(new Factory.ProgramNode([], Factory.KibaNode.emp
 
 export const $compiledCode = createStore('')
 
-const generateAstFx = createEffect((input: string) =>
-  generateParserAst(input).then(generateKibaAst)
-)
+const generateAstFx = createEffect((input: string) => generateParserAst(input).then(generateKibaAst))
 
-const compileFx = createEffect(async (input: string) => {
-  const ast = await generateAstFx(input)
-  const code = await compile(input)
+const analyzeFx = createEffect<Factory.ProgramNode, void, RuleResult[]>(analyze)
 
-  return { ast, code }
-})
+const compileFx = createEffect(compile)
 
 $input.on(inputChanged, (_, input) => input)
 
-$ast.on(generateAstFx.doneData, (_, ast) => ast).on(compileFx.doneData, (_, { ast }) => ast)
+$ast.on(generateAstFx.doneData, (_, ast) => ast).reset(compileSourceCode)
 
-$compiledCode.on(compileFx.doneData, (_, { code }) => code)
-
-sample({
-  source: $input,
-  clock: generateAst,
-  target: generateAstFx,
-})
+$compiledCode
+  .on(compileFx.doneData, (_, code) => code)
+  .on([compileFx.failData, generateAstFx.failData], (_, e) => e.message)
+  .on(analyzeFx.failData, (_, errors) => errors.map((e) => e.message).join('\n'))
+  .reset(compileSourceCode)
 
 sample({
   source: $input,
   clock: compileSourceCode,
+  target: generateAstFx,
+})
+
+sample({
+  source: generateAstFx.doneData,
+  target: analyzeFx,
+})
+
+sample({
+  source: generateAstFx.doneData,
+  clock: analyzeFx.doneData,
   target: compileFx,
 })
 
 generateAstFx.failData.watch(console.error)
 compileFx.failData.watch(console.error)
+analyzeFx.failData.watch(console.error)
