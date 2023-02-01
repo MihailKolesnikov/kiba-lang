@@ -1,0 +1,24 @@
+%lex
+
+%%
+
+\s+  /* skip whitespace */
+\d+  return 'NUMBER'
+
+/lex
+
+%%
+
+Expression
+    : MaskExpression
+    | Expression MaskExpression { $$ = $1 + ' ' + $2 }
+    ;
+
+MaskExpression
+  : NumericLiteral '[' NumericLiteral ']' { $$ = new Array($3).fill(9).join('') }
+  | NumericLiteral
+  ;
+
+NumericLiteral
+  : NUMBER { $$ = Number($1) }
+  ;
